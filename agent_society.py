@@ -260,7 +260,8 @@ class World:
     def label(self, a: Agent) -> str:
         # Stable perceptual handles avoid leaking hidden occupation/identity labels.
         if not a.name:
-            return f"the {{'A': 'amber', 'B': 'green', 'C': 'ivory', 'D': 'violet'}.get(a.id, a.id.lower())} one"
+            colour = {"A": "amber", "B": "green", "C": "ivory", "D": "violet"}.get(a.id, a.id.lower())
+            return f"the {colour} one"
         if any(o.id != a.id and (o.name or "").strip().lower() == a.name.strip().lower()
                for o in self.agents.values()):
             return f"{a.name} ({a.id.lower()})"
