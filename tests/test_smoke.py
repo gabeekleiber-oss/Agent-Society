@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import re
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -51,6 +53,23 @@ class AgentSocietySmokeTests(unittest.TestCase):
             self.assertTrue((state_dir / "snapshots.jsonl").exists())
             self.assertTrue((state_dir / "agents" / "A" / "history.jsonl").exists())
             self.assertIn("Done.", result.stdout)
+
+    def test_viewer_javascript_syntax(self) -> None:
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("Node.js is not installed; browser syntax check skipped")
+        spec = importlib.util.spec_from_file_location("agent_society_viewer_test", SCRIPT)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+        scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>", module.VIEWER_HTML, re.S)
+        inline_scripts = [script for script in scripts if script.strip()]
+        self.assertTrue(inline_scripts, "No inline viewer script found")
+        result = subprocess.run([node, "--check"], input=inline_scripts[-1], text=True,
+                                capture_output=True, check=False, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stdout + "\\n" + result.stderr)
 
     def test_bad_marker_is_viewer_only_and_observations_are_blank_slate(self) -> None:
         spec = importlib.util.spec_from_file_location("agent_society_under_test", SCRIPT)
