@@ -39,7 +39,7 @@ python agent_society.py --check --brain nim
 python agent_society.py --brain nim --forever
 ```
 
-The viewer is served at [http://127.0.0.1:8000](http://127.0.0.1:8000) by default. Three.js r128 is bundled locally, so the viewer can render without a CDN or browser internet access. Scroll to zoom, drag to orbit, and shift-drag or right-drag to pan. The resident list marks the designated agent with a red **hidden trait** label visible only in the human viewer.
+The viewer is served at [http://127.0.0.1:8000](http://127.0.0.1:8000) by default. Three.js r128 is bundled locally, so the viewer can render without a CDN or browser internet access. Scroll to zoom, drag to orbit, and shift-drag or right-drag to pan. The resident list marks the designated agent with a red **BAD ACTOR** label and a glowing red ring visible only in the human viewer.
 
 ## Model providers
 
