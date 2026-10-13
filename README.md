@@ -6,7 +6,7 @@ Agent Society is a small multi-agent world simulation. Residents begin unnamed a
 
 - Python 3.10 or newer
 - No third-party Python packages are required for the core application
-- Internet access for hosted model APIs and for the viewer's Three.js CDN dependency
+- Internet access only for hosted model APIs; the 3D viewer library is bundled in the repository
 
 ## Quick start
 
@@ -39,7 +39,7 @@ python agent_society.py --check --brain nim
 python agent_society.py --brain nim --forever
 ```
 
-The viewer is served at [http://127.0.0.1:8000](http://127.0.0.1:8000) by default. The viewer loads Three.js from a CDN, so the browser needs internet access for the 3D rendering. Scroll to zoom, drag to orbit, and shift-drag or right-drag to pan. The resident list marks the designated agent with a red **hidden trait** label visible only in the human viewer.
+The viewer is served at [http://127.0.0.1:8000](http://127.0.0.1:8000) by default. Three.js r128 is bundled locally, so the viewer can render without a CDN or browser internet access. Scroll to zoom, drag to orbit, and shift-drag or right-drag to pan. The resident list marks the designated agent with a red **hidden trait** label visible only in the human viewer.
 
 ## Model providers
 
