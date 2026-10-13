@@ -1353,7 +1353,7 @@ VIEWER_HTML = r'''<!doctype html>
     <div class="card"><h2>The book in the Hall</h2><div class="scroll" id="bookList"></div></div>
   </aside>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/vendor/three.min.js"></script>
 <script>
 (function(){
 "use strict";
@@ -1655,6 +1655,14 @@ def make_handler(state_dir):
             path, _, query = self.path.partition("?")
             if path in ("/", "/index.html"):
                 return self._send(200, VIEWER_HTML.encode("utf-8"), "text/html; charset=utf-8")
+            if path == "/vendor/three.min.js":
+                vendor_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "viewer", "vendor", "three.min.js")
+                try:
+                    with open(vendor_path, "rb") as vendor_file:
+                        vendor = vendor_file.read()
+                except OSError:
+                    return self._send(404, b"Three.js vendor file missing", "text/plain; charset=utf-8")
+                return self._send(200, vendor, "application/javascript; charset=utf-8")
             if path == "/api/events":
                 offset = 0
                 for part in query.split("&"):
