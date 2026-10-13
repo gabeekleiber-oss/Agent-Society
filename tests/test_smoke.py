@@ -64,7 +64,7 @@ class AgentSocietySmokeTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         sys.modules[spec.name] = module
         spec.loader.exec_module(module)
-        scripts = re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>", module.VIEWER_HTML, re.S)
+        scripts = re.findall(r"<script(?:\s[^>]*)?>(.*?)</script>", module.VIEWER_HTML, re.S)
         inline_scripts = [script for script in scripts if script.strip()]
         self.assertTrue(inline_scripts, "No inline viewer script found")
         result = subprocess.run([node, "--check"], input=inline_scripts[-1], text=True,
