@@ -13,9 +13,10 @@ env/
 *.pem
 *.key
 
-# Simulation output
+# Simulation output and private histories
 state_village/
 state*/
+runs/
 *.log
 
 # Editor / OS
