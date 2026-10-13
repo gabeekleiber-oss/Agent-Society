@@ -69,7 +69,7 @@ class AgentSocietySmokeTests(unittest.TestCase):
         self.assertTrue(inline_scripts, "No inline viewer script found")
         result = subprocess.run([node, "--check"], input=inline_scripts[-1], text=True,
                                 capture_output=True, check=False, timeout=20)
-        self.assertEqual(result.returncode, 0, result.stdout + "\\n" + result.stderr)
+        self.assertEqual(result.returncode, 0, result.stdout + "\n" + result.stderr)
 
     def test_bad_marker_is_viewer_only_and_observations_are_blank_slate(self) -> None:
         spec = importlib.util.spec_from_file_location("agent_society_under_test", SCRIPT)
