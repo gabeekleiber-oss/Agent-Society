@@ -1,6 +1,6 @@
 # Agent Society
 
-Agent Society is a small simulation of a 3D village inhabited by four AI-driven residents: two wheat farmers, a baker, and a priest. Residents act within a rule-based world, build their own memories, and leave persistent records of what happens. A browser-based 3D viewer can display the village.
+Agent Society is a small multi-agent world simulation. Residents begin unnamed and without an assigned occupation or supplied culture; they encounter the world through sensory descriptions, their own actions, memories, and conversations. One resident receives a private self-serving behavioral bias. The human-only viewer marks that resident; the marker and designation are not included in other residents' observations. A browser-based 3D viewer lets you inspect and replay the world.
 
 ## Requirements
 
@@ -39,7 +39,7 @@ python agent_society.py --check --brain nim
 python agent_society.py --brain nim --forever
 ```
 
-The viewer is served at [http://127.0.0.1:8000](http://127.0.0.1:8000) by default. The viewer loads Three.js from a CDN, so the browser needs internet access for the 3D rendering.
+The viewer is served at [http://127.0.0.1:8000](http://127.0.0.1:8000) by default. The viewer loads Three.js from a CDN, so the browser needs internet access for the 3D rendering. Scroll to zoom, drag to orbit, and shift-drag or right-drag to pan. The resident list marks the designated agent with a red **hidden trait** label visible only in the human viewer.
 
 ## Model providers
 
@@ -90,7 +90,16 @@ Run `python agent_society.py --help` for the full list of options.
 
 ## Saved state
 
-By default, state is written to `state_village/`. The simulation saves files including `chronicle.md`, `events.jsonl`, `thoughts.jsonl`, and `state.json`. Stop and resume by using the same `--state` directory. Saved state is runtime output and is intentionally ignored by Git.
+Each fresh run gets a unique folder under `runs/`, named with its start time and seed. The run writes continuously, rather than waiting until shutdown:
+
+- `state.json` — resumable world state, atomically replaced after each world hour
+- `events.jsonl` — append-only world event stream, including viewer snapshots
+- `snapshots.jsonl` — append-only per-hour world snapshots
+- `thoughts.jsonl` — private model thoughts, one record per turn
+- `chronicle.md` — readable event chronicle
+- `agents/<A-D>/history.jsonl` — that resident's observations, response, and private thought, flushed per turn
+
+To resume a run, pass its folder explicitly, for example `python agent_society.py --brain scripted --forever --state runs/20261013_120000_123456_seed7`. To replay without advancing time, use `python agent_society.py --view-only --state runs/20261013_120000_123456_seed7`. Run output is intentionally ignored by Git so large histories and private thoughts are not accidentally committed.
 
 ## Configuration
 
@@ -114,7 +123,7 @@ Run the lightweight offline checks with:
 python -m unittest discover -s tests -v
 ```
 
-The tests do not require provider credentials.
+The tests do not require provider credentials. They also check that run histories are created and that the hidden marker appears in viewer snapshot data but not in another resident's observation.
 
 ## Security notes
 
