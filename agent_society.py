@@ -1245,7 +1245,7 @@ def check_lineup(args):
     """One real call per resident, with a realistic prompt: verifies keys, model ids, JSON replies and speed."""
     w = World(args.seed)
     for i, aid in enumerate(AGENT_IDS):
-        w.add_agent(aid, NAMES[aid], "", START_PLACE)
+        w.add_agent(aid, None, "", START_PLACE)
     specs = parse_lineup(args.lineup, args.brain, args.model)
     cache, ok = {}, True
     for aid, (kind, model) in zip(AGENT_IDS, specs):
