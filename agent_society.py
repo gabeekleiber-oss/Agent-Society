@@ -408,7 +408,7 @@ class World:
         if others:
             L.append("With you here:")
             for o in others:
-                handle = ("someone called " + o.name) if o.name else f"the {o.id.lower()} one"
+                handle = self.label(o)
                 L.append(f"  {handle} (looks {self._look(o.health)}) carries: "
                          f"{self._goods(o.wheat, o.bread)}")
         else:
