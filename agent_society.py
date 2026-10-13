@@ -1279,16 +1279,16 @@ VIEWER_HTML = r'''<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>The Village</title>
 <style>
-  :root{--bg:#12141a;--panel:#1b1e27;--line:#2a2e3b;--text:#e6e8ee;--muted:#8b90a0}
+  :root{--bg:#0b1118;--panel:#121d29;--panel2:#182838;--line:#2b4052;--text:#edf5fa;--muted:#91a7b7;--accent:#80d5c7;--danger:#ff5f70}
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
     font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-  .app{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:12px;height:100%;padding:12px}
+  .app{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;height:100%;padding:14px;background:radial-gradient(ellipse at 20% 0%,#173042 0%,var(--bg) 58%)}
   main{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0}
   .chips{display:flex;gap:8px;flex-wrap:wrap}
   .chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px 12px;color:var(--muted);font-size:13px}
   .chip b{color:var(--text)}
-  #stage{position:relative;flex:1;min-height:0;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#222}
+  #stage{position:relative;flex:1;min-height:0;border-radius:18px;overflow:hidden;border:1px solid #315064;background:linear-gradient(150deg,#142b3a,#0c1722 72%);box-shadow:0 18px 60px #0005,inset 0 1px #ffffff12}
   #gl{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
   #bubbles{position:absolute;inset:0;pointer-events:none;overflow:hidden}
   .bub{position:absolute;transform:translate(-50%,-100%);max-width:250px;background:#fff;color:#111;padding:5px 9px;
@@ -1301,12 +1301,13 @@ VIEWER_HTML = r'''<!doctype html>
   #slider{flex:1;min-width:120px;accent-color:#8aa4ff}
   #pos{color:var(--muted);font-size:13px;min-width:80px;text-align:right}
   aside{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .card{background:linear-gradient(155deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:0 8px 24px #0002}
   .card h2{margin:0 0 6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
   .p{display:grid;grid-template-columns:12px 1fr;gap:2px 8px;padding:5px 0;border-top:1px solid var(--line)}
   .p:first-of-type{border-top:0}
   .dot{width:10px;height:10px;border-radius:50%;margin-top:5px}
   .p small{color:var(--muted)}
+  .flagged{display:inline-flex;align-items:center;gap:4px;margin-left:7px;padding:1px 7px;border:1px solid #ff5f7066;border-radius:999px;background:#ff5f701a;color:#ff8793;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
   .bar{height:6px;background:#0006;border-radius:3px;overflow:hidden;margin:3px 0}
   .bar i{display:block;height:100%}
   #talk{flex:1;min-height:200px;display:flex;flex-direction:column}
@@ -1394,8 +1395,8 @@ function people(s){
   let h="<h2>Residents</h2>";
   for(const id of AG){
     const a=s.agents[id];if(!a)continue;
-    h+=`<div class="p"><div class="dot" style="background:${CSS[id]}"></div><div>
-      <b>${esc(a.name||"(no name yet)")}</b> <small>${esc(a.role)}${a.gen>1?" - generation "+a.gen:""} - ${esc(PN[a.loc]||a.loc)}</small>
+    h+=`<div class="p"><div class="dot" style="background:${a.is_bad?"#ff5f70":CSS[id]};box-shadow:${a.is_bad?"0 0 0 4px #ff5f7022,0 0 14px #ff5f70aa":"none"}"></div><div>
+      <b>${esc(a.name||"(no name yet)")}</b>${a.is_bad?'<span class="flagged">⚑ hidden trait</span>':""} <small>${esc(a.role)}${a.gen>1?" - generation "+a.gen:""} - ${esc(PN[a.loc]||a.loc)}</small>
       <div class="bar"><i style="width:${Math.max(0,a.health)}%;background:${hpColor(a.health)}"></i></div>
       <small>health ${a.health} - ${hungerWord(a.hunger)} - carries ${goods(a.wheat,a.bread)} - ${a.marks} wall message(s) left</small></div></div>`;
   }
@@ -1514,9 +1515,11 @@ function init3d(){
   const VIEWS={village:[-8,0,-12,150],house:[0,0,0,45],field:[46,0,12,60],bakery:[-34,0,26,45],hall:[-12,4,-52,55],cave:[-60,9,-30,55]};
   function view(k){const v=VIEWS[k];goal.t.set(v[0],v[1],v[2]);goal.r=v[3];}
   let drag=null;
-  canvas.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);canvas.style.cursor="grabbing";});
+  canvas.addEventListener("contextmenu",e=>e.preventDefault());
+  canvas.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY,pan:e.shiftKey||e.button===1||e.button===2};canvas.setPointerCapture(e.pointerId);canvas.style.cursor=drag.pan?"move":"grabbing";});
   canvas.addEventListener("pointerup",()=>{drag=null;canvas.style.cursor="grab";});
-  canvas.addEventListener("pointermove",e=>{if(!drag)return;rig.az-=(e.clientX-drag.x)*0.006;rig.el=Math.max(0.12,Math.min(1.45,rig.el+(e.clientY-drag.y)*0.006));drag={x:e.clientX,y:e.clientY};});
+  canvas.addEventListener("pointercancel",()=>{drag=null;canvas.style.cursor="grab";});
+  canvas.addEventListener("pointermove",e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(drag.pan){const scale=goal.r*0.002;goal.t.x-=dx*scale*Math.cos(rig.az);goal.t.z+=dx*scale*Math.sin(rig.az);goal.t.y+=dy*scale*0.45;goal.t.z+=dy*scale*Math.cos(rig.az)*0.35;}else{rig.az-=dx*0.006;rig.el=Math.max(0.12,Math.min(1.45,rig.el+dy*0.006));}drag={x:e.clientX,y:e.clientY,pan:drag.pan};});
   canvas.addEventListener("wheel",e=>{e.preventDefault();goal.r=Math.max(20,Math.min(320,goal.r*(1+e.deltaY*0.001)));},{passive:false});
   document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>view(b.dataset.v));
   T={scene,cam,renderer,sun,amb,ag,stalks,hDoor,bDoor,glow,lamps,rig,goal,bub:{}};
