@@ -27,9 +27,10 @@ THE VILLAGE
   * A mind is only called when something happened to it, or it has been idle for --idle-wake hours. Nights are
     slept through. --daily-calls and --max-calls cap spending.
 
-State is saved every world hour in <state>/ (chronicle.md, events.jsonl, thoughts.jsonl, state.json); stop and
-resume with the same --state. The default folder is state_village (it cannot read old v2 saves). The agents never
-see the chronicle, their private thoughts, or the viewer. To change how they are framed, edit SYSTEM before a run.
+Each new run gets a unique runs/<timestamp>_seed<seed>/ folder unless --state is supplied. World events,
+snapshots, private thoughts, per-agent histories, a readable chronicle, and state.json are flushed continuously.
+Resume or replay a run by passing its folder with --state. Agents never receive the viewer-only designation, the
+world event stream, or other residents' private thoughts and histories.
 """
 from __future__ import annotations
 
@@ -1715,6 +1716,7 @@ def should_act(world: World, a: Agent, args) -> bool:
 
 def run_world(args):
     os.makedirs(args.state, exist_ok=True)
+    print(f"Output folder: {os.path.abspath(args.state)}", file=sys.stderr)
     sp = os.path.join(args.state, "state.json")
     fresh = not os.path.exists(sp)
     if fresh:
