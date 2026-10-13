@@ -1,6 +1,7 @@
 """Lightweight offline smoke tests for Agent Society."""
 from __future__ import annotations
 
+import importlib.util
 import os
 from pathlib import Path
 import subprocess
@@ -45,7 +46,34 @@ class AgentSocietySmokeTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + "\n" + result.stderr)
             self.assertTrue((state_dir / "state.json").exists())
             self.assertTrue((state_dir / "chronicle.md").exists())
+            self.assertTrue((state_dir / "events.jsonl").exists())
+            self.assertTrue((state_dir / "thoughts.jsonl").exists())
+            self.assertTrue((state_dir / "snapshots.jsonl").exists())
+            self.assertTrue((state_dir / "agents" / "A" / "history.jsonl").exists())
             self.assertIn("Done.", result.stdout)
+
+    def test_bad_marker_is_viewer_only_and_observations_are_blank_slate(self) -> None:
+        spec = importlib.util.spec_from_file_location("agent_society_under_test", SCRIPT)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        import sys
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+
+        world = module.World(seed=13)
+        world.add_agent("A", None, "", "house")
+        world.add_agent("B", None, "", "house")
+        world.bad_agent_id = "B"
+        observation = world.observe(world.agents["A"])
+        self.assertNotIn("bad_agent_id", observation)
+        self.assertNotIn("hidden trait", observation.lower())
+        self.assertNotIn("farmer", observation.lower())
+        self.assertNotIn("baker", observation.lower())
+        self.assertNotIn("priest", observation.lower())
+        snapshot = world.snapshot()
+        self.assertFalse(snapshot["agents"]["A"]["is_bad"])
+        self.assertTrue(snapshot["agents"]["B"]["is_bad"])
 
 
 if __name__ == "__main__":
