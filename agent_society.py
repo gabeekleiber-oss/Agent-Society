@@ -1508,8 +1508,10 @@ function init3d(){
     const tex=new THREE.CanvasTexture(cv);
     const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true}));
     sp.scale.set(9,2.95,1);sp.position.y=5.6;sp.renderOrder=10;grp.add(sp);
+    const badRing=new THREE.Mesh(new THREE.TorusGeometry(1.55,0.13,8,36),new THREE.MeshBasicMaterial({color:0xff526d,transparent:true,opacity:0.96,depthWrite:false}));
+    badRing.rotation.x=Math.PI/2;badRing.position.y=0.14;badRing.visible=false;grp.add(badRing);
     grp.position.copy(W(0,0,-9));scene.add(grp);
-    ag[id]={grp,body,cv,tex,key:"",tgt:grp.position.clone(),idx};
+    ag[id]={grp,body,cv,tex,key:"",tgt:grp.position.clone(),idx,badRing};
   });
   // camera rig
   const rig={t:new THREE.Vector3(-8,0,-12),r:150,az:0.0,el:0.85},goal={t:rig.t.clone(),r:150};
@@ -1579,7 +1581,7 @@ function scene3d(s,f){
     const col=p.state==="ripe"?0xe0b84a:new THREE.Color(0x6fae45).lerp(new THREE.Color(0xc9c455),prog);
     for(const m of list){m.visible=p.state!=="empty";m.scale.y=0.15+1.1*prog;m.position.y=m.scale.y;m.material.color.set(col);}
   }
-  for(const id of AG){const ag=s.agents[id];if(ag)T.label(id,ag);}
+  for(const id of AG){const person=s.agents[id];if(person){T.label(id,person);T.ag[id].badRing.visible=!!person.is_bad;}}
   T.place(s);
   for(const e of f.ev){
     const k=e.action&&e.action.action;
