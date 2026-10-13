@@ -10,7 +10,7 @@
   Mixed:    --lineup "nim:model-a,model-b" "nim:model-c" ...   one entry per resident (A B C D), repeated if fewer.
   Free setup: set NVIDIA_API_KEY (build.nvidia.com), then --list-models nim, then --check, then --forever.
   Tunable via env: AGENT_RPM, AGENT_TPM, AGENT_MAX_TOKENS, AGENT_TEMPERATURE, AGENT_TIMEOUT, <PROVIDER>_BASE_URL.
-  Viewer:   http://localhost:8000   (3D view loads three.js from cdnjs, so the browser needs internet)
+  Viewer:   http://localhost:8000   (3D rendering library is bundled locally)
 
 THE VILLAGE
   * Four residents: A and B are wheat farmers (each owns one plot), C is the baker, D is the priest.
