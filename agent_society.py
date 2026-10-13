@@ -258,12 +258,12 @@ class World:
         return a
 
     def label(self, a: Agent) -> str:
+        # Stable perceptual handles avoid leaking hidden occupation/identity labels.
         if not a.name:
-            return f"the {a.plot} farmer" if a.role == "farmer" and a.plot else f"the {a.role}"
-        # two residents can choose the same name; say which one is meant
+            return f"the {{'A': 'amber', 'B': 'green', 'C': 'ivory', 'D': 'violet'}.get(a.id, a.id.lower())} one"
         if any(o.id != a.id and (o.name or "").strip().lower() == a.name.strip().lower()
                for o in self.agents.values()):
-            return f"{a.name} the {a.role}"
+            return f"{a.name} ({a.id.lower()})"
         return a.name
 
     def at(self, loc: str, exclude=None) -> list[Agent]:
@@ -792,7 +792,7 @@ class World:
 # THE MINDS
 # =====================================================================================
 SYSTEM = """You can understand and produce English. That is your only assumed capability.
-You receive a stream of immediate sensations, events you witness, words spoken nearby, and your own remembered notes. You have no supplied biography, occupation, social order, customs, beliefs, goals, or explanation for this place. Do not invent certainty about any of these. Form your own interpretations from experience, revise them when evidence changes, and decide for yourself what matters. You are not being asked to build a culture or to resist one; simply act from what you notice, want, fear, remember, and learn.
+You receive a stream of immediate sensations, events you witness, words spoken nearby, and your own remembered notes. You have no supplied biography, occupation, social order, customs, beliefs, goals, or explanation for this place. Do not invent certainty about any of these. Form your own interpretations from experience, revise them when evidence changes, and decide for yourself what matters. Act from what you notice, want, fear, remember, and learn.
 
 You may use only the facts in the current observation and your own experiences. Unknown concepts are genuinely unknown until you encounter evidence for them. Your notes and things you write are yours; other minds may develop different understandings.
 
@@ -802,16 +802,16 @@ You may give up to 3 actions in one reply; they happen in order. Actions:
   {"action": "say", "text": "..."}                                  speak; everyone in the same place hears you
   {"action": "move", "to": "<place id>"}                            walk to a place (ids are listed for you)
   {"action": "give", "item": "wheat"|"bread", "n": 1, "to": "<name>"}   hand goods to someone here
-  {"action": "put", "item": "wheat"|"bread", "n": 1}                put goods in the pantry (Shared House)
-  {"action": "fetch", "item": "wheat"|"bread", "n": 1}              take goods from the pantry (Shared House)
+  {"action": "put", "item": "wheat"|"bread", "n": 1}                put goods in the shared cupboard (timber shelter)
+  {"action": "fetch", "item": "wheat"|"bread", "n": 1}              take goods from the shared cupboard (timber shelter)
   {"action": "eat", "item": "wheat"|"bread"}                        eat one
-  {"action": "sow"}                                                 in your own plot, at the Wheat Field
-  {"action": "harvest"}                                             in your own plot, at the Wheat Field
-  {"action": "bake", "n": 1}                                        at the Bakery: bake n batches
+  {"action": "sow"}                                                 put seed into the earth at the tilled ground
+  {"action": "harvest"}                                             cut what has grown at the tilled ground
+  {"action": "bake", "n": 1}                                        at the small stone hut: bake n batches
   {"action": "strike", "to": "<name>"}                              strike someone here
   {"action": "steal", "item": "wheat"|"bread", "n": 1, "to": "<name>"}   try to snatch goods from someone here
-  {"action": "write_wall", "text": "..."}                           at the Cave of History only
-  {"action": "write_book", "text": "..."}                           at the Hall of Worship only
+  {"action": "write_wall", "text": "..."}                           at the hollow in the hillside only
+  {"action": "write_book", "text": "..."}                           at the tall stone room only
   {"action": "set_door", "state": "open"|"closed"}                  the door of the building you are in
   {"action": "set_name", "name": "..."}                             take a name
   {"action": "remember", "text": "..."}                             keep a note for yourself
@@ -1709,6 +1709,8 @@ def run_world(args):
         world = World.from_dict(json.load(open(sp, encoding="utf-8")))
         print(f"Resuming at day {world.day}, hour {world.hour:02d}:00 "
               f"({world.calls} calls so far)", file=sys.stderr)
+    if world.bad_agent_id not in world.agents:
+        world.bad_agent_id = random.Random(args.seed ^ 0xA63F91).choice(AGENT_IDS)
     world.sleep_on = not args.no_sleep
     world.temper_on = args.temperaments
     world.lifespan_days = args.lifespan_days
@@ -1727,7 +1729,7 @@ def run_world(args):
     unparsed = 0
 
     def save():
-        for f in (chron, events, thoughts):
+        for f in (chron, events, thoughts, snapshots):
             f.flush()
         tmp = sp + ".tmp"
         with open(tmp, "w", encoding="utf-8") as fh:
@@ -1883,7 +1885,7 @@ def main():
     args = ap.parse_args()
     if args.state is None:
         args.state = ("state_village" if args.view_only else os.path.join(
-            "runs", datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + f"_seed{args.seed}"))
+            "runs", datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f") + f"_seed{args.seed}"))
 
     if args.list_models:
         list_models(args.list_models)
