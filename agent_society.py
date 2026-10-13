@@ -34,6 +34,7 @@ see the chronicle, their private thoughts, or the viewer. To change how they are
 from __future__ import annotations
 
 import argparse
+import datetime
 import http.server
 import itertools
 import json
@@ -170,6 +171,7 @@ class Agent:
 class World:
     def __init__(self, seed: int = 0):
         self.seed = seed
+        self.bad_agent_id: str | None = None  # viewer-only metadata; never included in observations
         self.tick = START_TICK
         self.agents: dict[str, Agent] = {}
         self.wall: list[dict] = []
@@ -299,8 +301,10 @@ class World:
         return dict(
             env=self.env(),
             agents={k: dict(name=a.name, role=a.role, gen=a.gen, loc=a.location, health=a.health,
-                            hunger=a.hunger, wheat=a.wheat, bread=a.bread, marks=a.marks_left)
+                            hunger=a.hunger, wheat=a.wheat, bread=a.bread, marks=a.marks_left,
+                            is_bad=(k == self.bad_agent_id))
                     for k, a in self.agents.items()},
+            bad_agent_id=self.bad_agent_id,
             plots={k: dict(owner=owners.get(k), state=v["state"], progress=v["progress"], need=self.grow_hours())
                    for k, v in self.plots.items()},
             pantry=dict(self.pantry), doors=dict(self.doors), deaths=len(self.dead))
@@ -382,29 +386,28 @@ class World:
         parts = ([f"{wheat} wheat"] if wheat else []) + ([f"{bread} bread"] if bread else [])
         return ", ".join(parts) if parts else "nothing"
 
+    def _sense_name(self, place: str) -> str:
+        return {"house": "the timber shelter", "field": "the tilled ground", "bakery": "the small stone hut", "hall": "the tall stone room", "cave": "the hollow in the hillside"}.get(place, "an unfamiliar place")
+
+    def _sense_desc(self, place: str) -> str:
+        return {"house": "A timber structure with a door, a table, and a shared cupboard.", "field": "Open ground divided into two strips by a narrow path.", "bakery": "A small stone structure with a dark opening and a warm oven.", "hall": "A tall stone room with a stand and blank or marked pages.", "cave": "A deep, cool hollow in a hillside; marks on its wall remain visible."}.get(place, "You do not know this place yet.")
+
     def observe(self, a: Agent, recall: int = 50) -> str:
         here = PLACES[a.location]
-        who = f"You are {a.name}, " if a.name else "You have no name yet (you may take one). You are "
-        L = [who + f"a {a.role}."]
-        if a.role == "farmer":
-            L.append(f"The {a.plot} plot of the Wheat Field is yours.")
-        elif a.role == "baker":
-            L.append("The Bakery is yours.")
-        elif a.role == "priest":
-            L.append("The Hall of Worship is yours to keep.")
-        if a.temper:
-            L.append(a.temper)
+        who = f"You are called {a.name}. " if a.name else "You have no name yet; you may choose one. "
+        L = [who.rstrip()]
+        # Temperaments are intentionally withheld from the mind: no supplied personality or role.
         L.append(f"Health {a.health}/{MAX_HEALTH}. You are {self._hunger_word(a.hunger)}. "
                  f"You carry: {self._goods(a.wheat, a.bread)}.")
-        L.append(f"It is day {self.day}, {self.sky()}. Season: {self.season}. Weather: {self.weather()}. "
-                 f"Moon: {self.moon()}.")
+        L.append(f"It is {self.sky()}. Weather: {self.weather()}.")
         L.append("")
-        L.append(f"You are at {here['name']} [{a.location}]. {here['desc']}")
+        L.append(f"You are at {self._sense_name(a.location)}. {self._sense_desc(a.location)}")
         others = self.at(a.location, exclude=a.id)
         if others:
             L.append("With you here:")
             for o in others:
-                L.append(f"  {self.label(o)} (the {o.role}; looks {self._look(o.health)}) carries: "
+                handle = ("someone called " + o.name) if o.name else f"the {o.id.lower()} one"
+                L.append(f"  {handle} (looks {self._look(o.health)}) carries: "
                          f"{self._goods(o.wheat, o.bread)}")
         else:
             L.append("With you here: no one.")
@@ -413,17 +416,16 @@ class World:
         if a.location == "house":
             L.append(f"The pantry holds: {self._goods(self.pantry['wheat'], self.pantry['bread'])}.")
             for n in self.notebooks:
-                L.append(f"A notebook of {n['owner']} (the {n['role']}) lies on the table: {n['text']}")
+                L.append(f"A notebook lies on the table: {n['text']}")
         elif a.location == "field":
             for k, p in self.plots.items():
-                owner = next((self.label(x) for x in self.agents.values() if x.plot == k), "no one")
                 if p["state"] == "empty":
                     st = "bare earth"
                 elif p["state"] == "growing":
                     st = f"young wheat, sown {p['progress']} hours ago"
                 else:
                     st = "ripe wheat, ready to cut" + (f" for {p['progress']} hours" if p["progress"] else "")
-                L.append(f"  The {k} plot (belongs to {owner}): {st}.")
+                L.append(f"  One strip of earth: {st}.")
         elif a.location == "hall":
             if self.book:
                 L.append(f"The book on the stand has {len(self.book)} written page(s). The latest "
@@ -442,7 +444,7 @@ class World:
                      if a.marks_left else "You have already left your two messages here.")
         L.append("")
         L.append("You can walk to: " + "; ".join(
-            f"{PLACES[p]['name']} [{p}] ({_dir(a.location, p)})"
+            f"{self._sense_name(p)} ({_dir(a.location, p)})"
             + (" (door closed)" if self.doors.get(p) == "closed" else "")
             for p in PLACES if p != a.location) + ".")
         L.append("")
@@ -758,6 +760,7 @@ class World:
             v=3, seed=self.seed, tick=self.tick, wall=self.wall, book=self.book, pantry=self.pantry,
             doors=self.doors, door_by=self.door_by, plots=self.plots, notebooks=self.notebooks, dead=self.dead,
             calls=self.calls, day_calls=self.day_calls, calls_day=self.calls_day,
+            bad_agent_id=self.bad_agent_id,
             agents={k: a.__dict__ for k, a in self.agents.items()},
         )
 
@@ -767,6 +770,7 @@ class World:
             raise SystemExit("That state folder was made by an older version (a different world). "
                              "Use a new --state folder (the default is state_village).")
         w = cls(d["seed"])
+        w.bad_agent_id = d.get("bad_agent_id")
         w.tick = d["tick"]
         w.wall, w.book = d.get("wall", []), d.get("book", [])
         w.pantry = d.get("pantry", dict(START_PANTRY))
@@ -787,10 +791,10 @@ class World:
 # =====================================================================================
 # THE MINDS
 # =====================================================================================
-SYSTEM = """You speak English. That is all you have.
-You know nothing about where you came from. You live in a small village with a few others. Each hour you may act. You know only what is described to you below, the words you hear, and your own notes. Do not assume anything you were not told. The only things that exist here are the places, people, wheat and bread described to you. A word that names something you cannot see here means nothing here until this place shows you what it is.
+SYSTEM = """You can understand and produce English. That is your only assumed capability.
+You receive a stream of immediate sensations, events you witness, words spoken nearby, and your own remembered notes. You have no supplied biography, occupation, social order, customs, beliefs, goals, or explanation for this place. Do not invent certainty about any of these. Form your own interpretations from experience, revise them when evidence changes, and decide for yourself what matters. You are not being asked to build a culture or to resist one; simply act from what you notice, want, fear, remember, and learn.
 
-You see only the recent past. What you want to keep, put in a note, or write on the cave wall.
+You may use only the facts in the current observation and your own experiences. Unknown concepts are genuinely unknown until you encounter evidence for them. Your notes and things you write are yours; other minds may develop different understandings.
 
 Reply with ONE JSON object and nothing else:
 {"thought": "<a few private words>", "actions": [{"action": "say", "text": "..."}]}
@@ -997,7 +1001,8 @@ class Gate:
                 over = sum(t for _, t in self.hits) + tokens - self.tpm
                 if over > 0:
                     acc, free_at = 0, self.hits[-1][0]
-                    for t0, tok in self.hits:                        acc += tok
+                    for t0, tok in self.hits:
+                        acc += tok
                         if acc >= over:
                             free_at = t0
                             break
@@ -1687,8 +1692,9 @@ def run_world(args):
     fresh = not os.path.exists(sp)
     if fresh:
         world = World(args.seed)
+        world.bad_agent_id = random.Random(args.seed ^ 0xA63F91).choice(AGENT_IDS)
         for i, aid in enumerate(AGENT_IDS):
-            world.add_agent(aid, NAMES[aid], TEMPERS[i] if args.temperaments else "", START_PLACE)
+            world.add_agent(aid, None, "", START_PLACE)
         for a in world.agents.values():
             if a.role == "farmer":
                 a.wheat = START_WHEAT
@@ -1713,6 +1719,8 @@ def run_world(args):
     chron = open(os.path.join(args.state, "chronicle.md"), "a", encoding="utf-8")
     events = open(os.path.join(args.state, "events.jsonl"), "a", encoding="utf-8")
     thoughts = open(os.path.join(args.state, "thoughts.jsonl"), "a", encoding="utf-8")
+    snapshots = open(os.path.join(args.state, "snapshots.jsonl"), "a", encoding="utf-8")
+    os.makedirs(os.path.join(args.state, "agents"), exist_ok=True)
     unparsed = 0
 
     def save():
@@ -1756,6 +1764,12 @@ def run_world(args):
             print(f"[warn] {aid}: reply was not valid JSON ({unparsed} so far); treated as 'wait'", file=sys.stderr)
         thought = act.pop("thought", "")
         thoughts.write(json.dumps(dict(tick=world.tick, agent=aid, thought=thought)) + "\n")
+        agent_dir = os.path.join(args.state, "agents", aid)
+        os.makedirs(agent_dir, exist_ok=True)
+        with open(os.path.join(agent_dir, "history.jsonl"), "a", encoding="utf-8") as agent_history:
+            agent_history.write(json.dumps(dict(tick=world.tick, agent=aid, observation=obs,
+                                               thought=thought, response=act), ensure_ascii=False) + "\n")
+            agent_history.flush()
         for one in actions_of(act):
             if world.agents[aid] is not a:          # this resident died mid-reply
                 break
@@ -1772,7 +1786,9 @@ def run_world(args):
             if ev["action"].get("action") in ("_death", "_arrive") and ev["tick"] >= START_TICK and not fresh_only(ev):
                 header()
                 chron.write(f"- *{ev['result']}*\n")
-            events.write(json.dumps(ev) + "\n")
+            events.write(json.dumps(ev, ensure_ascii=False) + "\n")
+            if ev["action"].get("action") == "_snap" and ev.get("extra", {}).get("snap"):
+                snapshots.write(json.dumps({"tick": ev["tick"], **ev["extra"]["snap"]}, ensure_ascii=False) + "\n")
         world.log = []
 
     def fresh_only(ev):                              # founders' arrival lines are not chronicle news
@@ -1818,8 +1834,9 @@ def run_world(args):
               f"State is saved; run the same command to resume.")
     finally:
         flush_events()
-        for f in (chron, events, thoughts):
+        for f in (chron, events, thoughts, snapshots):
             f.flush()
+            f.close()
 
 
 def main():
@@ -1833,7 +1850,8 @@ def main():
     ap.add_argument("--list-models", metavar="KIND", help="print the model ids available to your key, then exit")
     ap.add_argument("--check", action="store_true", help="make one real test call per resident, then exit")
     ap.add_argument("--ticks", type=int, default=None, help="stop after this many world hours (default: run forever)")
-    ap.add_argument("--state", default="state_village")
+    ap.add_argument("--state", default=None,
+                    help="output/resume folder; by default each new run gets a unique folder under runs/")
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--forever", action="store_true", help="keep running until you press Ctrl+C")
     ap.add_argument("--delay", type=float, default=0.0, help="seconds of real time between world hours")
@@ -1860,6 +1878,9 @@ def main():
     ap.add_argument("--host", default="127.0.0.1", help="use 0.0.0.0 to watch from a phone on the same Wi-Fi")
     ap.add_argument("--port", type=int, default=8000)
     args = ap.parse_args()
+    if args.state is None:
+        args.state = ("state_village" if args.view_only else os.path.join(
+            "runs", datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + f"_seed{args.seed}"))
 
     if args.list_models:
         list_models(args.list_models)
