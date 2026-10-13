@@ -90,6 +90,11 @@ class AgentSocietySmokeTests(unittest.TestCase):
         self.assertNotIn("farmer", observation.lower())
         self.assertNotIn("baker", observation.lower())
         self.assertNotIn("priest", observation.lower())
+        for name in ("Wheat Field", "Hall of Worship", "Cave of History", "the Bakery"):
+            self.assertNotIn(name.lower(), observation.lower())
+        self.assertIn("[P1]", observation)
+        self.assertIn("[P2]", observation)
+        self.assertEqual(world._place_id("P2"), "field")
         snapshot = world.snapshot()
         self.assertFalse(snapshot["agents"]["A"]["is_bad"])
         self.assertTrue(snapshot["agents"]["B"]["is_bad"])
