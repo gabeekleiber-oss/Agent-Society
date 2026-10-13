@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import http.server
 import os
 import re
 import shutil
@@ -9,7 +10,9 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
+import urllib.request
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -70,6 +73,32 @@ class AgentSocietySmokeTests(unittest.TestCase):
         result = subprocess.run([node, "--check"], input=inline_scripts[-1], text=True,
                                 capture_output=True, check=False, timeout=20)
         self.assertEqual(result.returncode, 0, result.stdout + "\n" + result.stderr)
+
+    def test_three_js_is_served_from_the_project(self) -> None:
+        spec = importlib.util.spec_from_file_location("agent_society_vendor_test", SCRIPT)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory(prefix="agent-society-viewer-") as temp_dir:
+            server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), module.make_handler(temp_dir))
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                base = f"http://127.0.0.1:{server.server_address[1]}"
+                with urllib.request.urlopen(base + "/vendor/three.min.js", timeout=5) as response:
+                    library = response.read()
+                    self.assertEqual(response.status, 200)
+                    self.assertGreater(len(library), 500_000)
+                    self.assertIn(b"SPDX-License-Identifier: MIT", library[:200])
+                with urllib.request.urlopen(base + "/", timeout=5) as response:
+                    html = response.read().decode("utf-8")
+                    self.assertIn('src="/vendor/three.min.js"', html)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
 
     def test_bad_marker_is_viewer_only_and_observations_are_blank_slate(self) -> None:
         spec = importlib.util.spec_from_file_location("agent_society_under_test", SCRIPT)
