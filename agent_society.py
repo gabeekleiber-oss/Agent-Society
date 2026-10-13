@@ -1933,8 +1933,9 @@ def main():
     ap.add_argument("--port", type=int, default=8000)
     args = ap.parse_args()
     if args.state is None:
-        args.state = ("state_village" if args.view_only else os.path.join(
-            "runs", datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f") + f"_seed{args.seed}"))
+        project_root = os.path.dirname(os.path.abspath(__file__))
+        args.state = (os.path.join(project_root, "state_village") if args.view_only else os.path.join(
+            project_root, "runs", datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f") + f"_seed{args.seed}"))
 
     if args.list_models:
         list_models(args.list_models)
