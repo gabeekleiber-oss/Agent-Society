@@ -1405,7 +1405,7 @@ function people(s){
   for(const id of AG){
     const a=s.agents[id];if(!a)continue;
     h+=`<div class="p"><div class="dot" style="background:${a.is_bad?"#ff5f70":CSS[id]};box-shadow:${a.is_bad?"0 0 0 4px #ff5f7022,0 0 14px #ff5f70aa":"none"}"></div><div>
-      <b>${esc(a.name||"(no name yet)")}</b>${a.is_bad?'<span class="flagged">⚑ hidden trait</span>':""} <small>${esc(a.role)}${a.gen>1?" - generation "+a.gen:""} - ${esc(PN[a.loc]||a.loc)}</small>
+      <b>${esc(a.name||"(no name yet)")}</b>${a.is_bad?'<span class="flagged">⚑ BAD ACTOR</span>':""} <small>${esc(a.role)}${a.gen>1?" - generation "+a.gen:""} - ${esc(PN[a.loc]||a.loc)}</small>
       <div class="bar"><i style="width:${Math.max(0,a.health)}%;background:${hpColor(a.health)}"></i></div>
       <small>health ${a.health} - ${hungerWord(a.hunger)} - carries ${goods(a.wheat,a.bread)} - ${a.marks} wall message(s) left</small></div></div>`;
   }
