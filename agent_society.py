@@ -368,7 +368,7 @@ class World:
                     born=self.tick, temper=self.rng().choice(TEMPERS) if self.temper_on else "")
         self.agents[aid] = new
         self.tell_all(f"{who} has died ({cause}).", exclude=aid)
-        self.tell_all(f"Someone new, who works as the {old.role}, appeared at the Shared House.", exclude=aid)
+        self.tell_all("Someone new appeared at the timber shelter.", exclude=aid)
         self.emit(new, {"action": "_arrive"}, f"A new {old.role} arrived.", {})
         return new
 
@@ -419,7 +419,7 @@ class World:
         if self.doors.get(a.location) == "closed":
             L.append("The door here is closed.")
         if a.location == "house":
-            L.append(f"The pantry holds: {self._goods(self.pantry['wheat'], self.pantry['bread'])}.")
+            L.append(f"The cupboard holds: {self._goods(self.pantry['wheat'], self.pantry['bread'])}.")
             for n in self.notebooks:
                 L.append(f"A notebook lies on the table: {n['text']}")
         elif a.location == "field":
@@ -635,7 +635,7 @@ class World:
         if a.location != "bakery":
             return "There is no oven here."
         if a.role != "baker":
-            return "The oven is the baker's; you do not know how to work it."
+            return "You try to use the oven, but nothing happens."
         batches = min(self._n(act.get("n"), 1, 5), a.wheat // BAKE_IN)
         if batches <= 0:
             return f"You need at least {BAKE_IN} wheat in your hands to bake."
@@ -713,9 +713,9 @@ class World:
 
     def _do_write_book(self, a, act):
         if a.location != "hall":
-            return "The book is in the Hall of Worship."
+            return "There are no pages here to write on."
         if a.role != "priest":
-            return "The book is the priest's to write in."
+            return "Your attempt to write on the pages fails."
         text = self._clip(act.get("text"), BOOK_TEXT)
         if not text:
             return "You held the pen over the page but wrote nothing."
@@ -733,7 +733,7 @@ class World:
         if house not in self.doors:
             return "There is no door of yours to set here."
         if house == "bakery" and a.role != "baker":
-            return "The bakery door is the baker's."
+            return "The door does not respond to your attempt."
         self.doors[house] = state
         self.door_by[house] = a.id if state == "closed" else None
         self.tell(house, f"The door was {'closed' if state == 'closed' else 'opened'}.", exclude=a.id)
@@ -1161,17 +1161,18 @@ class ScriptedBrain:
         rng, r = self.rng, self.rng.random()
         m = re.search(r"You are at .*?\[(\w+)\]", observation)
         loc = m.group(1) if m else "house"
-        role = "farmer" if "a farmer" in observation else "baker" if "a baker" in observation else "priest"
+        # Offline test brain uses neutral location codes, not resident roles.
+        loc = {"P1": "house", "P2": "field", "P3": "bakery", "P4": "hall", "P5": "cave"}.get(loc, "house")
         hungry = re.search(r"You are (hungry|very hungry|starving)\.", observation)
         who = rng.choice(["Tim", "Joe", "Mia", "Sam"])
         item = rng.choice(["wheat", "bread"])
         if hungry and r < 0.7:
             acts = [{"action": "eat", "item": item}]
-        elif role == "farmer" and loc == "field" and r < 0.6:
+        elif loc == "field" and r < 0.6:
             acts = [{"action": rng.choice(["sow", "harvest"])}]
-        elif role == "baker" and loc == "bakery" and r < 0.5:
+        elif loc == "bakery" and r < 0.5:
             acts = [{"action": "bake", "n": 1}]
-        elif role == "priest" and loc == "hall" and r < 0.5:
+        elif loc == "hall" and r < 0.5:
             acts = [{"action": "write_book", "text": rng.choice(["Be gentle with bread.", "The field gives; we give back."])}]
         elif loc == "cave" and r < 0.3:
             acts = [{"action": "write_wall", "text": rng.choice(["we were here", "the bread is warm", "no"])}]
