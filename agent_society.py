@@ -1844,6 +1844,10 @@ def run_world(args):
     def fresh_only(ev):                              # founders' arrival lines are not chronicle news
         return ev["action"].get("action") == "_arrive" and ev["result"].startswith("A founding")
 
+    # Persist the initial world and its first snapshot before any model call can block or fail.
+    flush_events()
+    save()
+
     try:
         for _ in (itertools.count() if (args.forever or args.ticks is None) else range(args.ticks)):
             if args.max_calls and world.calls >= args.max_calls:
