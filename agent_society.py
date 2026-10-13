@@ -394,6 +394,9 @@ class World:
     def _sense_desc(self, place: str) -> str:
         return {"house": "A timber structure with a door, a table, and a shared cupboard.", "field": "Open ground divided into two strips by a narrow path.", "bakery": "A small stone structure with a dark opening and a warm oven.", "hall": "A tall stone room with a stand and blank or marked pages.", "cave": "A deep, cool hollow in a hillside; marks on its wall remain visible."}.get(place, "You do not know this place yet.")
 
+    def _sense_code(self, place: str) -> str:
+        return {"house": "P1", "field": "P2", "bakery": "P3", "hall": "P4", "cave": "P5"}.get(place, "P?")
+
     def observe(self, a: Agent, recall: int = 50) -> str:
         here = PLACES[a.location]
         who = f"You are called {a.name}. " if a.name else "You have no name yet; you may choose one. "
@@ -403,7 +406,7 @@ class World:
                  f"You carry: {self._goods(a.wheat, a.bread)}.")
         L.append(f"It is {self.sky()}. Weather: {self.weather()}.")
         L.append("")
-        L.append(f"You are at {self._sense_name(a.location)}. {self._sense_desc(a.location)}")
+        L.append(f"You are at {self._sense_name(a.location)} [{self._sense_code(a.location)}]. {self._sense_desc(a.location)}")
         others = self.at(a.location, exclude=a.id)
         if others:
             L.append("With you here:")
@@ -446,7 +449,7 @@ class World:
                      if a.marks_left else "You have already left your two messages here.")
         L.append("")
         L.append("You can walk to: " + "; ".join(
-            f"{self._sense_name(p)} ({_dir(a.location, p)})"
+            f"{self._sense_name(p)} [{self._sense_code(p)}] ({_dir(a.location, p)})"
             + (" (door closed)" if self.doors.get(p) == "closed" else "")
             for p in PLACES if p != a.location) + ".")
         L.append("")
@@ -491,6 +494,9 @@ class World:
 
     def _place_id(self, ref) -> str | None:
         s = str(ref or "").strip().lower().replace(" ", "_")
+        opaque = {"p1": "house", "p2": "field", "p3": "bakery", "p4": "hall", "p5": "cave"}
+        if s in opaque:
+            return opaque[s]
         if s in PLACES:
             return s
         plain = str(ref or "").strip().lower()
