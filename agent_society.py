@@ -1454,6 +1454,26 @@ function init3d(){
   const box=(w,h,d,c,x,y,z)=>add(new THREE.BoxGeometry(w,h,d),c,x,y+h/2,z);
   function roof(w,h,d,c,x,y,z){const m=add(new THREE.CylinderGeometry(0,1,h,4),c,x,y+h/2,z);m.rotation.y=Math.PI/4;m.scale.set(w*0.5*1.15*1.4142,1,d*0.5*1.15*1.4142);return m;}
   const g=add(new THREE.PlaneGeometry(900,900),0x5f9a4a,0,0,0);g.rotation.x=-Math.PI/2;
+  // A winding dirt network gives the settlement a readable layout.
+  function dirtPath(points,width=3.4){
+    for(let i=0;i<points.length-1;i++){
+      const p=points[i],q=points[i+1],dx=q[0]-p[0],dz=q[1]-p[1],len=Math.hypot(dx,dz);
+      const m=add(new THREE.PlaneGeometry(len,width),0xb7a078,(p[0]+q[0])/2,0.045,(p[1]+q[1])/2);
+      m.rotation.x=-Math.PI/2;m.rotation.y=Math.atan2(-dz,dx);
+    }
+  }
+  dirtPath([[0,0],[10,2],[23,6],[46,12]],4.2);
+  dirtPath([[0,0],[-11,7],[-23,17],[-34,26]],3.6);
+  dirtPath([[0,0],[-4,-12],[-7,-27],[-12,-42]],3.6);
+  dirtPath([[-34,26],[-44,13],[-52,-1],[-60,-16]],3.2);
+  dirtPath([[-12,-42],[-30,-40],[-46,-28],[-60,-16]],3.0);
+  // A small pond and its stony shore add a second landmark beyond the buildings.
+  const pond=add(new THREE.CircleGeometry(13,40),0x4f9da8,22,0.035,-36);pond.rotation.x=-Math.PI/2;
+  const shore=add(new THREE.RingGeometry(12.8,15.2,40),0xb6a47c,22,0.06,-36);shore.rotation.x=-Math.PI/2;
+  for(let i=0;i<18;i++){
+    const a=i*Math.PI*2/18,rr=13.9+(i%3)*0.55;
+    add(new THREE.DodecahedronGeometry(0.7+(i%4)*0.15,0),0x8c927d,22+Math.cos(a)*rr,0.45,-36+Math.sin(a)*rr);
+  }
   // trees
   let sd=7;const rnd=()=>{sd=(sd*16807)%2147483647;return sd/2147483647;};
   for(let i=0;i<46;i++){
@@ -1526,6 +1546,7 @@ function init3d(){
   canvas.addEventListener("wheel",e=>{e.preventDefault();goal.r=Math.max(20,Math.min(320,goal.r*(1+e.deltaY*0.001)));},{passive:false});
   document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>view(b.dataset.v));
   T={scene,cam,renderer,sun,amb,ag,stalks,hDoor,bDoor,glow,lamps,rig,goal,bub:{}};
+  $("msg").textContent="Drag to orbit · scroll to zoom · shift/right-drag to pan";
   const SLOT=[[-3,0],[3,0],[-1.6,3.2],[1.6,3.2]];
   const ANCH={house:[0,0,-9],bakery:[-34,0,-35],hall:[-12,4,42],cave:[-60,9,16],field:[46,0,-12]};   // x, y, north
   T.place=function(s){
